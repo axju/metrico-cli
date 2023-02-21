@@ -1,0 +1,186 @@
+[build-system]
+requires = ["setuptools >= 35.0.2"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "metrico"
+dynamic = ["version"]
+authors = [{ name="axju", email="moin@axju.de" }]
+description = "Just some metrics stuff."
+readme = "README.rst"
+requires-python = ">=3.10"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+]
+
+dependencies = [
+    "sqlalchemy >= 1.4.46",
+    "alembic >= 1.9.2",
+    "pydantic >= 1.10.4",
+    "tomli >= 2.0.1; python_version<'3.11'",
+    "rich >= 13.0.0",
+
+    "python-youtube",
+    "python-tiktok",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest",
+    "pytest-cov",
+    "coverage",
+    "Faker",
+
+    "mypy",
+    "sqlalchemy[mypy]",
+    "pylint",
+    "pyupgrade",
+    "safety",
+    "bandit",
+
+    "pre-commit",
+
+    "black",
+    "isort",
+
+    "tox",
+]
+
+[project.urls]
+"Homepage" = "https://github.com/axju/metrico"
+"Bug Tracker" = "https://github.com/axju/metrico/issues"
+
+[project.scripts]
+metrico = "metrico.cli.__main__:main"
+
+#[project.entry-points."metrico.hunters"]
+#youtube = "metrico.core.hunters:YoutubeHunter"
+#dummy = "metrico.core.hunters:BasicHunter"
+
+[tool.setuptools]
+packages = ["metrico"]
+
+[tool.setuptools.dynamic]
+version = {attr = "metrico.__version__"}
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+
+[tool.coverage.report]
+fail_under = 50
+show_missing = true
+
+[tool.coverage.run]
+omit = [
+    "metrico/cli/*"
+]
+
+[tool.mypy]
+ignore_missing_imports = true
+allow_redefinition = true
+check_untyped_defs = true
+plugins = [
+  "sqlalchemy.ext.mypy.plugin",
+]
+
+[tool.pylint.messages_control]
+max-line-length = 260
+disable = [
+    "missing-docstring",
+    "broad-except",
+    "bare-except",
+    "too-few-public-methods",
+    "too-many-arguments",
+    "too-many-return-statements",
+    "R0801",  # Similar lines in 2 files
+    "dangerous-default-value",
+    "not-callable", # sqlalcheme func.now, func.count, ...
+]
+ignore = [
+    "tests",
+    "migrations",
+]
+
+[tool.bandit]
+skips = [
+  "B311",
+]
+
+[tool.black]
+target-version = ["py310"]
+line-length = 160
+color = true
+exclude = '''
+/(
+    \.git
+    | \.hg
+    | \.mypy_cache
+    | \.tox
+    | \.venv
+    | _build
+    | buck-out
+    | build
+    | dist
+    | env
+    | venv
+)/
+'''
+
+[tool.isort]
+py_version = 310
+line_length = 160
+known_typing = ["typing", "types", "typing_extensions", "mypy", "mypy_extensions"]
+sections = ["FUTURE", "TYPING", "STDLIB", "THIRDPARTY", "FIRSTPARTY", "LOCALFOLDER"]
+include_trailing_comma = true
+profile = "black"
+multi_line_output = 3
+indent = 4
+color_output = true
+
+
+[tool.tox]
+legacy_tox_ini = """
+[tox]
+env_list =
+    pylint,
+    type, cover, safety,
+    py310{,-postgre}-alchemy{,14,20},
+    py311{,-postgre}-alchemy20,
+#    py{310,311}{,-postgre, -mysql, -maria},
+
+skip_missing_interpreters = true
+[testenv]
+deps =
+    pytest
+    Faker
+    alchemy14: SQLAlchemy>=1.4,<4.2
+    alchemy20: SQLAlchemy>=2.0,<2.1
+    postgre: psycopg2-binary
+    mysql: mysqlclient
+    maria: mariadb
+commands = pytest -c pyproject.toml tests
+[testenv:cover]
+deps =
+    pytest
+    pytest-html
+    pytest-cov
+    coverage
+    Faker
+commands =
+    pytest -c pyproject.toml --cov=metrico tests
+[testenv:pylint]
+deps = pylint
+commands = pylint --rcfile pyproject.toml metrico
+[testenv:type]
+deps =
+    mypy
+    types-attrs
+    sqlalchemy[mypy]
+commands = mypy --config-file pyproject.toml -p metrico
+[testenv:safety]
+deps =
+    bandit[toml]
+commands = bandit -c pyproject.toml -r metrico
+"""
